@@ -11,14 +11,24 @@ nchnls = 2
 0dbfs = 1
 
 instr RoBod
-  #define KICK_MIDI_N      #41# ; Assign midi note numbers to drums here
+  #define KICK_MIDI_N      #41# ; assign midi note numbers to drums here
   #define SNARE_MIDI_N     #38#
   #define WOODBLOCK_MIDI_N #37#
 
   #define MIDI_MAX_VEL #127#
   
-  ikickdur      = .1 ; unfortunately drum note durations must be defined here
+  ; kick params
+  ikickdur          = .3
+  ikickbasefreq     = 27  ; 20-60ish conventional
+  ikicknoiseamt     = .04
+  ikickcolor        = 10  ; low values conventional, high values strange
+  ikickpitchreduct  = .4  ; <1 conventional, 0 illegal
+  ikickdecmethod    = 1   ; 0 = linear, 1 = exponential
+  
+  ; snare params
   isnaredur     = .1
+
+  ; woodblock params
   iwoodblockdur = .1
 
   ivel    = p5
@@ -27,7 +37,7 @@ instr RoBod
   imidi_n = p4
 
   if     (imidi_n == $KICK_MIDI_N) then
-    event_i "i", "RoBod_Kick", 0, ikickdur, iamp
+    event_i "i", "RoBod_Kick", 0, ikickdur, iamp, ikickbasefreq, ikicknoiseamt, ikickdecmethod, ikickcolor, ikickpitchreduct
   elseif (imidi_n == $SNARE_MIDI_N) then
     event_i "i", "RoBod_Snare", 0, isnaredur, iamp
   elseif (imidi_n == $WOODBLOCK_MIDI_N) then
@@ -38,10 +48,64 @@ instr RoBod
 endin
 
 instr RoBod_Kick
-  iamp = p4
+  idur       = p3
+  iamp       = p4
+  ibasefreq  = p5
+  inoiseamt  = p6
+  idecmethod = p7
+  imodfreq   = p8
+  ipitchred  = p9
+  isq2       = 1.0 / sqrt(2.0)
 
-  asig oscil iamp, 300
-  outs asig, asig
+  ifsine ftgenonce 0, 0, 65536, 10, 1
+  ifsaw  ftgenonce 0, 0, 16384, 10, 1, 0.5, 0.3, 0.25, 0.2, 0.167, 0.14, 0.125, .111 
+
+  if (idecmethod == 0) then
+    kenv linseg iamp, idur, 0
+  elseif (idecmethod == 1) then
+    kenv expon  iamp, idur, .001
+  else
+    prints "ERROR: %d is not a valid value for idecmethod", idecmethod
+  endif
+
+  ; freq-shifted oscil
+
+  apitchenv    expon ibasefreq, idur, ibasefreq * ipitchred
+  aosc         oscil kenv, apitchenv, ifsaw
+  areal, aimag hilbert aosc
+
+  asin oscili 1, imodfreq, ifsine 
+  acos oscili 1, imodfreq, ifsine, .25
+
+  amod1 = areal * acos
+  amod2 = aimag * asin
+
+  aocalc = isq2*(amod1 - amod2)
+
+  aosig balance aocalc, aosc
+
+  ; bp-filtered noise
+
+  afosc rand .5
+
+  ifhpf = 250
+  iflpf  = 1000
+  iflpfceil = 4000
+  iflpenvleng = .3
+
+  afhp butterhp afosc, ifhpf
+
+  aflpenv linseg iflpfceil, idur*iflpenvleng, iflpf
+  aflp butterlp afhp, aflpenv
+
+  afsig balance aflp, afosc
+
+  ; mix
+
+  asig = aosig + afsig*kenv*inoiseamt
+  apostsig clip asig, 1, iamp
+
+  outs apostsig, apostsig
 endin
 
 instr RoBod_Snare
