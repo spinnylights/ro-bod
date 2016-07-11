@@ -19,22 +19,22 @@ instr RoBod
   
   ; kick params
   ikickdur          = .20
-  ikickbasefreq     = 41  ; 20-60ish conventional
+  ikickbasefreq     = 45  ; 20-60ish conventional
   ikicknoiseamt     = .05
-  ikickcolor        = 24.2  ; low values conventional, high values strange
-  ikickpitchreduct  = .8  ; <1 conventional, 0 illegal
-  ikickdecmethod    = 1   ; 0 = linear, 1 = exponential
+  ikickcolor        = 14.2  ; low values conventional, high values strange
+  ikickpitchreduct  = .7  ; <1 conventional, 0 illegal
+  ikickdecmethod    = 0   ; 0 = linear, 1 = exponential
   
   ; snare params
   isnaredur         = .3
   isnarebasefreq    = 180
   isnarecolor       = 1
-  isnaresnares      = 1.25
-  isnaresnarecutoff = 7000
+  isnaresnares      = 2.25
+  isnaresnarecutoff = 9000
 
   ; woodblock params
-  iwoodblockdur = .1
-
+  iwoodbcolor = 700
+  
   ivel    = p5
   iamp    = ivel / $MIDI_MAX_VEL ; convert midi velocity to 0-1 scale
 
@@ -45,7 +45,7 @@ instr RoBod
   elseif (imidi_n == $SNARE_MIDI_N) then
     event_i "i", "RoBod_Snare", 0, isnaredur, iamp, isnarebasefreq, isnarecolor, isnaresnares, isnaresnarecutoff
   elseif (imidi_n == $WOODBLOCK_MIDI_N) then
-    event_i "i", "RoBod_Woodblock", 0, iwoodblockdur, iamp
+    event_i "i", "RoBod_Woodblock", 0, iamp, iwoodbcolor
   else
     prints "WARNING: midi note number %d does not correspond to a drum instrument\n", imidi_n
   endif
@@ -159,27 +159,67 @@ instr RoBod_Snare
 endin
 
 instr RoBod_Woodblock
-  iamp = p4
+  idur       = .2
+  iamp       = p3
+  ibeaterbf  = (((p4 - 1) * 1180) / 999) + 20 ; convert 1-1000 scale to 20-1200
+  iblockbf   = 449
+  ibeaterpnum = 2 ; quantity of beater partials modeled
+  iblockpnum  = 4 ; quantity of block partials modeled
 
-  asig oscil iamp, 500
-  outs asig, asig
+  ; additive beater synth
+  ibeaterp1 = ibeaterbf
+  ibeaterp2 = ibeaterbf*3
+
+  kbeaterp1env expon iamp/ibeaterpnum, idur/2, .001
+  kbeaterp2env expon iamp/ibeaterpnum, idur/3, .001
+ 
+  abeaterp1osc oscil kbeaterp1env, ibeaterp1
+  abeaterp2osc oscil kbeaterp2env, ibeaterp2
+
+  abeatersig = (abeaterp1osc + abeaterp2osc) / ibeaterpnum
+
+  ; additive block synth
+  iblockp1 = iblockbf
+  iblockp2 = iblockbf*1.42
+  iblockp3 = iblockbf*2.11
+  iblockp4 = iblockbf*2.47
+
+  kblockp1env expon iamp/iblockpnum, idur, .001
+  kblockp2env expon iamp/iblockpnum, idur/2, .001
+  kblockp3env expon iamp/iblockpnum, idur/2, .001
+  kblockp4env expon iamp/iblockpnum, idur/3, .001
+
+  ablockp1osc oscil kblockp1env, iblockp1
+  ablockp2osc oscil kblockp2env, iblockp2
+  ablockp3osc oscil kblockp3env, iblockp3
+  ablockp4osc oscil kblockp4env, iblockp4
+
+  ablocksig = (ablockp1osc + ablockp2osc + ablockp3osc + ablockp4osc) / iblockpnum
+
+  ; mix
+
+  ibeatersigampfac = (((p4 - 1) * (-.7)) / 999) + 1.2 ; convert 1-1000 scale to 1.2-.5
+  asig = abeatersig*ibeatersigampfac + ablocksig*3
+  apostsig clip asig, 1, iamp
+
+  outs apostsig, apostsig
 endin
 
 </CsInstruments>
 ; ==============================================
 <CsScore>
 ;i            s          d       n   v
-;i "RoBod"     0.0000     0.7479  41  80
+i "RoBod"     0.0000     0.7479  41  60
 i "RoBod"     0.7500     0.1229  38  80
 i "RoBod"     0.8750     0.1229  38  80
-;i "RoBod"     1.0000     0.4979  37  80
+i "RoBod"     1.0000     0.4979  37  90
 i "RoBod"     1.5000     0.4979  38  80
-;i "RoBod"     2.0000     0.7479  41  80
+i "RoBod"     2.0000     0.7479  41  60
 i "RoBod"     2.7500     0.1229  38  80
 i "RoBod"     2.8750     0.1229  38  80
-;i "RoBod"     3.0000     0.4979  37  80
-;i "RoBod"     3.5000     0.2479  37  80
-;i "RoBod"     3.7500     0.2479  37  80
+i "RoBod"     3.0000     0.4979  37  90
+i "RoBod"     3.5000     0.2479  37  90
+i "RoBod"     3.7500     0.2479  37  80
 e
 </CsScore>
 </CsoundSynthesizer>

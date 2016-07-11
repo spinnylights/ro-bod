@@ -17,3 +17,6 @@ Ro-bod is a synth-based drum machine that provides a wide range of textures whil
   * __isnarecolor:__ A constant that all the partials of the drum above the base frequency are multiplied by, allowing you to spread or tighten their distribution. Lower values give a darker snare, higher values give a brighter one. Values from .8–1.3 will give conventional results.
   * __isnaresnares:__ The volume of the noise burst used to simulate the sound of the drum snares. Conventional-sounding values will vary depending on the value of `isnaredur`, `isnarensares`, and `isnaresnarecutoff`, but tend to fall in the range of .8–4 or so at most. At long durations, values above ~1.2 or so may sound overly noisy.
   * __isnaresnarecutoff:__ The cutoff frequency for the lowpass filter applied to the noise burst, in hz. Anything from ~2000–~20000 can produce conventional results; lower values give softer snares, higher values give brighter ones. A higher value will result in louder snares, so you may want to adjust `isnaresnares` to compensate.
+
+### Woodblock
+  * __iwoodbcolor:__ A number from 1–1000. Controls the "material" of the simulated beater. Low values give a sound like felt; middle values give a sound like wood; high values give a sound like metal.
