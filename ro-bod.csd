@@ -19,12 +19,13 @@ instr RoBod
   #define MIDI_MAX_VEL #127#
   
   ; kick params
-  ikickdur          = .20
-  ikickbasefreq     = 45  ; 20-60ish conventional
-  ikicknoiseamt     = .05
-  ikickcolor        = 14.2  ; low values conventional, high values strange
+  ikickdur          = .35
+  ikickbasefreq     = 60  ; 20-60ish conventional
+  ikicknoiseamt     = .02
+  ikickcolor        = 7.2  ; low values conventional, high values strange
   ikickpitchreduct  = .7  ; <1 conventional, 0 illegal
   ikickdecmethod    = 0   ; 0 = linear, 1 = exponential
+  ikickpan          = .5
   
   ; snare params
   isnaredur         = .3
@@ -32,9 +33,11 @@ instr RoBod
   isnarecolor       = 1
   isnaresnares      = 2.25
   isnaresnarecutoff = 9000
+  isnarepan          = .32
 
   ; woodblock params
   iwoodbcolor = 700
+  iwoodbpan   = .61
   
   ivel    = p5
   iamp    = ivel / $MIDI_MAX_VEL ; convert midi velocity to 0-1 scale
@@ -42,11 +45,11 @@ instr RoBod
   imidi_n = p4
 
   if     (imidi_n == $KICK_MIDI_N) then
-    event_i "i", "RoBod_Kick", 0, ikickdur, iamp, ikickbasefreq, ikicknoiseamt, ikickdecmethod, ikickcolor, ikickpitchreduct
+    event_i "i", "RoBod_Kick", 0, ikickdur, iamp, ikickbasefreq, ikicknoiseamt, ikickdecmethod, ikickcolor, ikickpitchreduct, ikickpan
   elseif (imidi_n == $SNARE_MIDI_N) then
-    event_i "i", "RoBod_Snare", 0, isnaredur, iamp, isnarebasefreq, isnarecolor, isnaresnares, isnaresnarecutoff
+    event_i "i", "RoBod_Snare", 0, isnaredur, iamp, isnarebasefreq, isnarecolor, isnaresnares, isnaresnarecutoff, isnarepan
   elseif (imidi_n == $WOODBLOCK_MIDI_N) then
-    event_i "i", "RoBod_Woodblock", 0, iamp, iwoodbcolor
+    event_i "i", "RoBod_Woodblock", 0, iamp, iwoodbcolor, iwoodbpan
   else
     prints "WARNING: midi note number %d does not correspond to a drum instrument\n", imidi_n
   endif
@@ -60,6 +63,7 @@ instr RoBod_Kick
   idecmethod = p7
   imodfreq   = p8
   ipitchred  = p9
+  ipan       = p10
   isq2       = 1.0 / sqrt(2.0)
 
   ifsine ftgenonce 0, 0, 65536, 10, 1
@@ -110,7 +114,7 @@ instr RoBod_Kick
   asig = aosig + afsig*kenv*inoiseamt
   apostsig clip asig, 1, iamp
 
-  outs apostsig, apostsig
+  outs apostsig*ipan, apostsig*(1-ipan)
 endin
 
 instr RoBod_Snare
@@ -120,6 +124,7 @@ instr RoBod_Snare
   icolor       = p6
   isnares      = p7
   isnarecutoff = p8
+  ipan         = p9
 
   ; additive synth
   ip1 = ibasefreq     ;180  ; partial frequencies
@@ -156,7 +161,7 @@ instr RoBod_Snare
   asig = (aosc1 + aosc2 + aosc3 + aosc4 + aosc5 + aosc6 + aosc7 + aosc8 + aosc9) + (anlp*isnares)*kenv1  
   apostsig clip asig, 1, iamp
 
-  outs apostsig, apostsig
+  outs apostsig*ipan, apostsig*(1-ipan)
 endin
 
 instr RoBod_Woodblock
@@ -166,6 +171,7 @@ instr RoBod_Woodblock
   iblockbf   = 449
   ibeaterpnum = 2 ; quantity of beater partials modeled
   iblockpnum  = 4 ; quantity of block partials modeled
+  ipan        = p5
 
   ; additive beater synth
   ibeaterp1 = ibeaterbf
