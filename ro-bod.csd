@@ -1,7 +1,8 @@
 <CsoundSynthesizer>
 <CsOptions>
 ;-odac
--o ro-bod_demo.wav --format=wav
+-o ro-bod_ride_demo.wav --format=wav
+;-o /dev/null
 </CsOptions>
 ; ==============================================
 <CsInstruments>
@@ -15,6 +16,7 @@ instr RoBod
   #define KICK_MIDI_N      #41# ; assign midi note numbers to drums here
   #define SNARE_MIDI_N     #38#
   #define WOODBLOCK_MIDI_N #37#
+  #define RIDE_MIDI_N #36#
 
   #define MIDI_MAX_VEL #127#
   
@@ -38,6 +40,10 @@ instr RoBod
   ; woodblock params
   iwoodbcolor = 700
   iwoodbpan   = .61
+  ; ride params
+  iridedur = 4.4
+  iridepan = .5
+
   
   ivel    = p5
   iamp    = ivel / $MIDI_MAX_VEL ; convert midi velocity to 0-1 scale
@@ -50,6 +56,8 @@ instr RoBod
     event_i "i", "RoBod_Snare", 0, isnaredur, iamp, isnarebasefreq, isnarecolor, isnaresnares, isnaresnarecutoff, isnarepan
   elseif (imidi_n == $WOODBLOCK_MIDI_N) then
     event_i "i", "RoBod_Woodblock", 0, iamp, iwoodbcolor, iwoodbpan
+  elseif (imidi_n == $RIDE_MIDI_N) then
+    event_i "i", "RoBod_Ride", 0, iridedur, iamp, iridepan
   else
     prints "WARNING: midi note number %d does not correspond to a drum instrument\n", imidi_n
   endif
@@ -212,173 +220,214 @@ instr RoBod_Woodblock
   outs apostsig*ipan, apostsig*(1-ipan)
 endin
 
+instr RoBod_Ride
+  idur = p3
+  iamp = p4
+  ipan = p5
+  imodfreq = 1117
+  imodindex = 5
+  imodamp  = imodfreq * imodindex
+  icarfreq = 2490
+  ipingdur = idur * .05
+  ipingbase = 1000
+  irhpbase = 2628
+
+  ; fm signal
+  amod vco2 imodamp, imodfreq, 2, .65
+  kmod downsamp amod
+  acarposc oscil imodamp, icarfreq+amod
+  kcarposc downsamp acarposc
+  aosc vco2 iamp, kcarposc + kmod, 10
+
+  ; initial cymbal 'ping' filter
+  apingdec expseg 20000-ipingbase, ipingdur, 0.0001
+  aping butterbp aosc, ipingbase, apingdec 
+
+  ; rest of cymbal filter
+  arestenv expseg irhpbase, ipingdur, 20000, idur - (ipingdur), irhpbase
+  arest butterhp aosc, arestenv
+
+  asig = (aping * .33) + (arest * .66)
+  apostsig clip asig, 1, iamp
+
+  ; overall env
+  aoverenv expseg iamp, idur * .2, .0001
+
+  outs (apostsig*ipan)*aoverenv, (apostsig*(1-ipan))*aoverenv
+endin
+
 </CsInstruments>
 ; ==============================================
 <CsScore>
 t 0 120
+i "RoBod"     0.0000     .5  36  100
+i "RoBod"     1.0000     .5  36  100
+i "RoBod"     1.7500     .5  36  100
+i "RoBod"     2.2500     .5  36  100
+i "RoBod"     2.5000     .5  36  100
 ;i            s          d       n   v
-i "RoBod"     0.0000     0.7479  41  62
-i "RoBod"     0.7500     0.1229  38  79
-i "RoBod"     0.8750     0.1229  38  78
-i "RoBod"     1.0000     0.4979  37  91
-i "RoBod"     1.5000     0.4979  38  81
-i "RoBod"     2.0000     0.7479  41  62
-i "RoBod"     2.7500     0.1229  38  79
-i "RoBod"     2.8750     0.1229  38  78
-i "RoBod"     3.0000     0.2479  37  89
-i "RoBod"     3.2500     0.2479  38  79
-i "RoBod"     3.5000     0.2479  38  80
-i "RoBod"     3.7500     0.2479  37  89
-i "RoBod"     4.0000     0.7479  41  61
-i "RoBod"     4.7500     0.1229  38  78
-i "RoBod"     4.8750     0.1229  38  78
-i "RoBod"     5.0000     0.2479  37  89
-i "RoBod"     5.7500     0.2479  37  89
-i "RoBod"     6.0000     0.7479  41  62
-i "RoBod"     7.0000     0.2479  37  90
-i "RoBod"     7.2500     0.1229  38  88
-i "RoBod"     7.3750     0.1229  38  88
-i "RoBod"     7.5000     0.2479  38  89
-i "RoBod"     7.7500     0.2479  38  89
-i "RoBod"     8.0000     0.7479  41  62
-i "RoBod"     8.7500     0.1229  38  78
-i "RoBod"     8.8750     0.1229  38  78
-i "RoBod"     9.0000     0.4979  37  92
-i "RoBod"     9.5000     0.4979  38  81
-i "RoBod"    10.0000     0.7479  41  61
-i "RoBod"    10.7500     0.1229  38  78
-i "RoBod"    10.8750     0.1229  38  78
-i "RoBod"    11.0000     0.2479  37  91
-i "RoBod"    11.2500     0.2479  38  79
-i "RoBod"    11.5000     0.2479  38  81
-i "RoBod"    11.7500     0.2479  37  89
-i "RoBod"    12.0000     0.7479  41  62
-i "RoBod"    12.7500     0.1229  38  79
-i "RoBod"    12.8750     0.1229  38  78
-i "RoBod"    13.0000     0.2479  37  89
-i "RoBod"    13.2500     0.1229  37  88
-i "RoBod"    13.3750     0.1229  37  88
-i "RoBod"    13.5000     0.1229  38  79
-i "RoBod"    13.7500     0.1229  37  88
-i "RoBod"    13.8750     0.1229  37  88
-i "RoBod"    14.0000     0.7479  41  61
-i "RoBod"    14.7500     0.1229  38  79
-i "RoBod"    14.8750     0.1229  38  78
-i "RoBod"    15.0000     0.4979  37  90
-i "RoBod"    15.5000     0.1229  38  79
-i "RoBod"    15.7500     0.1229  38  78
-i "RoBod"    15.8750     0.1229  37  88
-i "RoBod"    16.0000     0.7479  41  63
-i "RoBod"    16.7500     0.1229  38  78
-i "RoBod"    16.8750     0.1229  38  78
-i "RoBod"    17.0000     0.4979  37  90
-i "RoBod"    17.5000     0.4979  38  80
-i "RoBod"    18.0000     0.7479  41  62
-i "RoBod"    18.7500     0.1229  38  78
-i "RoBod"    18.8750     0.1229  38  78
-i "RoBod"    19.0000     0.4979  37  90
-i "RoBod"    19.5000     0.4979  38  80
-i "RoBod"    20.0000     0.7479  41  62
-i "RoBod"    20.7500     0.1229  38  78
-i "RoBod"    20.8750     0.1229  38  78
-i "RoBod"    21.0000     0.4979  37  90
-i "RoBod"    21.5000     0.4979  38  80
-i "RoBod"    22.0000     0.7479  41  62
-i "RoBod"    23.0000     0.4979  37  90
-i "RoBod"    23.5000     0.2479  38  79
-i "RoBod"    23.7500     0.2479  38  79
-i "RoBod"    24.0000     0.7479  41  62
-i "RoBod"    24.7500     0.1229  38  78
-i "RoBod"    24.8750     0.1229  38  78
-i "RoBod"    25.0000     0.4979  37  90
-i "RoBod"    25.5000     0.4979  38  80
-i "RoBod"    26.0000     0.7479  41  62
-i "RoBod"    26.7500     0.1229  38  78
-i "RoBod"    26.8750     0.1229  38  78
-i "RoBod"    27.0000     0.4979  37  90
-i "RoBod"    27.5000     0.4979  38  80
-i "RoBod"    28.0000     0.7479  41  62
-i "RoBod"    28.7500     0.1229  38  78
-i "RoBod"    28.8750     0.1229  38  78
-i "RoBod"    29.0000     0.4979  37  90
-i "RoBod"    29.5000     0.4979  38  80
-i "RoBod"    30.0000     0.7479  41  62
-i "RoBod"    31.0000     0.4979  37  90
-i "RoBod"    31.5000     0.2479  38  79
-i "RoBod"    31.7500     0.2479  38  79
-i "RoBod"    32.0000     0.7479  41  62
-i "RoBod"    32.7500     0.1229  38  78
-i "RoBod"    32.8750     0.1229  38  78
-i "RoBod"    33.0000     0.4979  37  90
-i "RoBod"    33.5000     0.4979  38  80
-i "RoBod"    34.0000     0.7479  41  62
-i "RoBod"    34.7500     0.1229  38  78
-i "RoBod"    34.8750     0.1229  38  78
-i "RoBod"    35.0000     0.4979  37  90
-i "RoBod"    35.5000     0.4979  38  80
-i "RoBod"    36.0000     0.7479  41  62
-i "RoBod"    36.7500     0.1229  38  78
-i "RoBod"    36.8750     0.1229  38  78
-i "RoBod"    37.0000     0.4979  37  90
-i "RoBod"    37.5000     0.4979  38  80
-i "RoBod"    38.0000     0.7479  41  62
-i "RoBod"    39.0000     0.4979  37  90
-i "RoBod"    39.5000     0.2479  38  79
-i "RoBod"    39.7500     0.2479  38  79
-i "RoBod"    40.0000     0.7479  41  62
-i "RoBod"    40.7500     0.1229  38  78
-i "RoBod"    40.8750     0.1229  38  78
-i "RoBod"    41.0000     0.4979  37  90
-i "RoBod"    41.5000     0.4979  38  80
-i "RoBod"    42.0000     0.7479  41  62
-i "RoBod"    42.7500     0.1229  38  78
-i "RoBod"    42.8750     0.1229  38  78
-i "RoBod"    43.0000     0.4979  37  90
-i "RoBod"    43.5000     0.4979  38  80
-i "RoBod"    44.0000     0.7479  41  62
-i "RoBod"    44.7500     0.1229  38  78
-i "RoBod"    44.8750     0.1229  38  78
-i "RoBod"    45.0000     0.4979  37  90
-i "RoBod"    45.5000     0.4979  38  80
-i "RoBod"    46.0000     0.7479  41  62
-i "RoBod"    47.0000     0.4979  37  90
-i "RoBod"    47.5000     0.2479  38  79
-i "RoBod"    47.7500     0.2479  38  79
-i "RoBod"    48.0000     0.7479  41  62
-i "RoBod"    48.7500     0.1229  38  78
-i "RoBod"    48.8750     0.1229  38  78
-i "RoBod"    49.0000     0.4979  37  90
-i "RoBod"    49.5000     0.4979  38  80
-i "RoBod"    50.0000     0.7479  41  62
-i "RoBod"    50.7500     0.1229  38  78
-i "RoBod"    50.8750     0.1229  38  78
-i "RoBod"    51.0000     0.4979  37  90
-i "RoBod"    51.5000     0.4979  38  80
-i "RoBod"    52.0000     0.7479  41  62
-i "RoBod"    52.7500     0.1229  38  78
-i "RoBod"    52.8750     0.1229  38  78
-i "RoBod"    53.0000     0.4979  37  90
-i "RoBod"    53.5000     0.4979  38  80
-i "RoBod"    54.0000     0.7479  41  62
-i "RoBod"    55.0000     0.4979  37  90
-i "RoBod"    55.5000     0.2479  38  79
-i "RoBod"    55.7500     0.2479  38  79
-i "RoBod"    56.0000     0.7479  41  62
-i "RoBod"    56.7500     0.1229  38  78
-i "RoBod"    56.8750     0.1229  38  78
-i "RoBod"    57.0000     0.4979  37  90
-i "RoBod"    57.5000     0.4979  38  80
-i "RoBod"    58.0000     0.7479  41  62
-i "RoBod"    58.7500     0.1229  38  78
-i "RoBod"    58.8750     0.1229  38  78
-i "RoBod"    59.0000     0.4979  37  90
-i "RoBod"    59.5000     0.4979  38  80
-i "RoBod"    60.0000     0.7479  41  62
-i "RoBod"    60.7500     0.1229  38  78
-i "RoBod"    60.8750     0.1229  38  78
-i "RoBod"    61.0000     0.4979  37  90
-i "RoBod"    61.5000     0.4979  38  80
-i "RoBod"    62.0000     0.7479  37  82
+;i "RoBod"     0.0000     0.7479  41  62
+;i "RoBod"     0.7500     0.1229  38  79
+;i "RoBod"     0.8750     0.1229  38  78
+;i "RoBod"     1.0000     0.4979  37  91
+;i "RoBod"     1.5000     0.4979  38  81
+;i "RoBod"     2.0000     0.7479  41  62
+;i "RoBod"     2.7500     0.1229  38  79
+;i "RoBod"     2.8750     0.1229  38  78
+;i "RoBod"     3.0000     0.2479  37  89
+;i "RoBod"     3.2500     0.2479  38  79
+;i "RoBod"     3.5000     0.2479  38  80
+;i "RoBod"     3.7500     0.2479  37  89
+;i "RoBod"     4.0000     0.7479  41  61
+;i "RoBod"     4.7500     0.1229  38  78
+;i "RoBod"     4.8750     0.1229  38  78
+;i "RoBod"     5.0000     0.2479  37  89
+;i "RoBod"     5.7500     0.2479  37  89
+;i "RoBod"     6.0000     0.7479  41  62
+;i "RoBod"     7.0000     0.2479  37  90
+;i "RoBod"     7.2500     0.1229  38  88
+;i "RoBod"     7.3750     0.1229  38  88
+;i "RoBod"     7.5000     0.2479  38  89
+;i "RoBod"     7.7500     0.2479  38  89
+;i "RoBod"     8.0000     0.7479  41  62
+;i "RoBod"     8.7500     0.1229  38  78
+;i "RoBod"     8.8750     0.1229  38  78
+;i "RoBod"     9.0000     0.4979  37  92
+;i "RoBod"     9.5000     0.4979  38  81
+;i "RoBod"    10.0000     0.7479  41  61
+;i "RoBod"    10.7500     0.1229  38  78
+;i "RoBod"    10.8750     0.1229  38  78
+;i "RoBod"    11.0000     0.2479  37  91
+;i "RoBod"    11.2500     0.2479  38  79
+;i "RoBod"    11.5000     0.2479  38  81
+;i "RoBod"    11.7500     0.2479  37  89
+;i "RoBod"    12.0000     0.7479  41  62
+;i "RoBod"    12.7500     0.1229  38  79
+;i "RoBod"    12.8750     0.1229  38  78
+;i "RoBod"    13.0000     0.2479  37  89
+;i "RoBod"    13.2500     0.1229  37  88
+;i "RoBod"    13.3750     0.1229  37  88
+;i "RoBod"    13.5000     0.1229  38  79
+;i "RoBod"    13.7500     0.1229  37  88
+;i "RoBod"    13.8750     0.1229  37  88
+;i "RoBod"    14.0000     0.7479  41  61
+;i "RoBod"    14.7500     0.1229  38  79
+;i "RoBod"    14.8750     0.1229  38  78
+;i "RoBod"    15.0000     0.4979  37  90
+;i "RoBod"    15.5000     0.1229  38  79
+;i "RoBod"    15.7500     0.1229  38  78
+;i "RoBod"    15.8750     0.1229  37  88
+;i "RoBod"    16.0000     0.7479  41  63
+;i "RoBod"    16.7500     0.1229  38  78
+;i "RoBod"    16.8750     0.1229  38  78
+;i "RoBod"    17.0000     0.4979  37  90
+;i "RoBod"    17.5000     0.4979  38  80
+;i "RoBod"    18.0000     0.7479  41  62
+;i "RoBod"    18.7500     0.1229  38  78
+;i "RoBod"    18.8750     0.1229  38  78
+;i "RoBod"    19.0000     0.4979  37  90
+;i "RoBod"    19.5000     0.4979  38  80
+;i "RoBod"    20.0000     0.7479  41  62
+;i "RoBod"    20.7500     0.1229  38  78
+;i "RoBod"    20.8750     0.1229  38  78
+;i "RoBod"    21.0000     0.4979  37  90
+;i "RoBod"    21.5000     0.4979  38  80
+;i "RoBod"    22.0000     0.7479  41  62
+;i "RoBod"    23.0000     0.4979  37  90
+;i "RoBod"    23.5000     0.2479  38  79
+;i "RoBod"    23.7500     0.2479  38  79
+;i "RoBod"    24.0000     0.7479  41  62
+;i "RoBod"    24.7500     0.1229  38  78
+;i "RoBod"    24.8750     0.1229  38  78
+;i "RoBod"    25.0000     0.4979  37  90
+;i "RoBod"    25.5000     0.4979  38  80
+;i "RoBod"    26.0000     0.7479  41  62
+;i "RoBod"    26.7500     0.1229  38  78
+;i "RoBod"    26.8750     0.1229  38  78
+;i "RoBod"    27.0000     0.4979  37  90
+;i "RoBod"    27.5000     0.4979  38  80
+;i "RoBod"    28.0000     0.7479  41  62
+;i "RoBod"    28.7500     0.1229  38  78
+;i "RoBod"    28.8750     0.1229  38  78
+;i "RoBod"    29.0000     0.4979  37  90
+;i "RoBod"    29.5000     0.4979  38  80
+;i "RoBod"    30.0000     0.7479  41  62
+;i "RoBod"    31.0000     0.4979  37  90
+;i "RoBod"    31.5000     0.2479  38  79
+;i "RoBod"    31.7500     0.2479  38  79
+;i "RoBod"    32.0000     0.7479  41  62
+;i "RoBod"    32.7500     0.1229  38  78
+;i "RoBod"    32.8750     0.1229  38  78
+;i "RoBod"    33.0000     0.4979  37  90
+;i "RoBod"    33.5000     0.4979  38  80
+;i "RoBod"    34.0000     0.7479  41  62
+;i "RoBod"    34.7500     0.1229  38  78
+;i "RoBod"    34.8750     0.1229  38  78
+;i "RoBod"    35.0000     0.4979  37  90
+;i "RoBod"    35.5000     0.4979  38  80
+;i "RoBod"    36.0000     0.7479  41  62
+;i "RoBod"    36.7500     0.1229  38  78
+;i "RoBod"    36.8750     0.1229  38  78
+;i "RoBod"    37.0000     0.4979  37  90
+;i "RoBod"    37.5000     0.4979  38  80
+;i "RoBod"    38.0000     0.7479  41  62
+;i "RoBod"    39.0000     0.4979  37  90
+;i "RoBod"    39.5000     0.2479  38  79
+;i "RoBod"    39.7500     0.2479  38  79
+;i "RoBod"    40.0000     0.7479  41  62
+;i "RoBod"    40.7500     0.1229  38  78
+;i "RoBod"    40.8750     0.1229  38  78
+;i "RoBod"    41.0000     0.4979  37  90
+;i "RoBod"    41.5000     0.4979  38  80
+;i "RoBod"    42.0000     0.7479  41  62
+;i "RoBod"    42.7500     0.1229  38  78
+;i "RoBod"    42.8750     0.1229  38  78
+;i "RoBod"    43.0000     0.4979  37  90
+;i "RoBod"    43.5000     0.4979  38  80
+;i "RoBod"    44.0000     0.7479  41  62
+;i "RoBod"    44.7500     0.1229  38  78
+;i "RoBod"    44.8750     0.1229  38  78
+;i "RoBod"    45.0000     0.4979  37  90
+;i "RoBod"    45.5000     0.4979  38  80
+;i "RoBod"    46.0000     0.7479  41  62
+;i "RoBod"    47.0000     0.4979  37  90
+;i "RoBod"    47.5000     0.2479  38  79
+;i "RoBod"    47.7500     0.2479  38  79
+;i "RoBod"    48.0000     0.7479  41  62
+;i "RoBod"    48.7500     0.1229  38  78
+;i "RoBod"    48.8750     0.1229  38  78
+;i "RoBod"    49.0000     0.4979  37  90
+;i "RoBod"    49.5000     0.4979  38  80
+;i "RoBod"    50.0000     0.7479  41  62
+;i "RoBod"    50.7500     0.1229  38  78
+;i "RoBod"    50.8750     0.1229  38  78
+;i "RoBod"    51.0000     0.4979  37  90
+;i "RoBod"    51.5000     0.4979  38  80
+;i "RoBod"    52.0000     0.7479  41  62
+;i "RoBod"    52.7500     0.1229  38  78
+;i "RoBod"    52.8750     0.1229  38  78
+;i "RoBod"    53.0000     0.4979  37  90
+;i "RoBod"    53.5000     0.4979  38  80
+;i "RoBod"    54.0000     0.7479  41  62
+;i "RoBod"    55.0000     0.4979  37  90
+;i "RoBod"    55.5000     0.2479  38  79
+;i "RoBod"    55.7500     0.2479  38  79
+;i "RoBod"    56.0000     0.7479  41  62
+;i "RoBod"    56.7500     0.1229  38  78
+;i "RoBod"    56.8750     0.1229  38  78
+;i "RoBod"    57.0000     0.4979  37  90
+;i "RoBod"    57.5000     0.4979  38  80
+;i "RoBod"    58.0000     0.7479  41  62
+;i "RoBod"    58.7500     0.1229  38  78
+;i "RoBod"    58.8750     0.1229  38  78
+;i "RoBod"    59.0000     0.4979  37  90
+;i "RoBod"    59.5000     0.4979  38  80
+;i "RoBod"    60.0000     0.7479  41  62
+;i "RoBod"    60.7500     0.1229  38  78
+;i "RoBod"    60.8750     0.1229  38  78
+;i "RoBod"    61.0000     0.4979  37  90
+;i "RoBod"    61.5000     0.4979  38  80
+;i "RoBod"    62.0000     0.7479  37  82
 e
 </CsScore>
 </CsoundSynthesizer>
