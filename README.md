@@ -20,6 +20,11 @@ Ro-bod is a synth-based drum machine that provides a wide range of textures whil
   * __isnaresnarecutoff:__ The cutoff frequency for the lowpass filter applied to the noise burst, in hz. Anything from ~2000–~20000 can produce conventional results; lower values give softer snares, higher values give brighter ones. A higher value will result in louder snares, so you may want to adjust `isnaresnares` to compensate.
   * __isnarepan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.
 
+### Hi-hat
+  * __ihihatpedal:__ The foot pedal control. .9 is fully closed; 23 is fully open.
+  * __ihihatcolor:__ .8 is darkest; 3 is brightest.
+  * __ihihatpan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.
+
 ### Woodblock
   * __iwoodbcolor:__ A number from 1–1000. Controls the "material" of the simulated beater. Low values give a sound like felt; middle values give a sound like wood; high values give a sound like metal.
   * __iwoodbpan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.

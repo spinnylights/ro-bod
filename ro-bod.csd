@@ -1,7 +1,7 @@
 <CsoundSynthesizer>
 <CsOptions>
-;-odac
--o ro-bod_ride_demo.wav --format=wav
+-odac
+;-o ro-bod_hi_hat_demo.wav --format=wav
 ;-o /dev/null
 </CsOptions>
 ; ==============================================
@@ -40,11 +40,12 @@ instr RoBod
   ; woodblock params
   iwoodbcolor = 700
   iwoodbpan   = .61
-  ; ride params
-  iridedur = 4.4
-  iridepan = .5
 
-  
+  ; ride params
+  ihihatpedal = .9 ; .9 to 23; closed to open
+  ihihatcolor = 3; .8 to 3, dark to bright
+  ihihatpan = .5
+
   ivel    = p5
   iamp    = ivel / $MIDI_MAX_VEL ; convert midi velocity to 0-1 scale
 
@@ -57,7 +58,7 @@ instr RoBod
   elseif (imidi_n == $WOODBLOCK_MIDI_N) then
     event_i "i", "RoBod_Woodblock", 0, iamp, iwoodbcolor, iwoodbpan
   elseif (imidi_n == $RIDE_MIDI_N) then
-    event_i "i", "RoBod_Ride", 0, iridedur, iamp, iridepan
+    event_i "i", "RoBod_HiHat", 0, ihihatpedal, iamp, ihihatcolor, ihihatpan
   else
     prints "WARNING: midi note number %d does not correspond to a drum instrument\n", imidi_n
   endif
@@ -220,24 +221,46 @@ instr RoBod_Woodblock
   outs apostsig*ipan, apostsig*(1-ipan)
 endin
 
-instr RoBod_Ride
+instr RoBod_HiHat
   idur = p3
   iamp = p4
-  ipan = p5
-  imodfreq = 1117
-  imodindex = 5
-  imodamp  = imodfreq * imodindex
-  icarfreq = 2490
+  ispread = p5 ; from .8 to 3—dark to bright
+  ipan = p6
+  imodindex = (((ispread - .8) * (3 - 5)) / (3 - .8)) + 5 ; varies from 5 at minimum to 3 at maximum with ispread
+  imodfreq1 = 1047*ispread
+  icarfreq1 = 1481*ispread
+  imodamp1  = imodfreq1 * imodindex
+  imodfreq2 = 1109*ispread
+  icarfreq2 = 1049*ispread
+  imodamp2  = imodfreq2 * imodindex
+  imodfreq3 = 1175*ispread
+  icarfreq3 = 1480*ispread
+  imodamp3  = imodfreq3 * imodindex
   ipingdur = idur * .05
   ipingbase = 1000
   irhpbase = 2628
 
-  ; fm signal
-  amod vco2 imodamp, imodfreq, 2, .65
-  kmod downsamp amod
-  acarposc oscil imodamp, icarfreq+amod
-  kcarposc downsamp acarposc
-  aosc vco2 iamp, kcarposc + kmod, 10
+  ; fm signals
+  ;   sig1
+  amod1 vco2 imodamp1, imodfreq1, 2, .65
+  kmod1 downsamp amod1
+  acarposc1 oscil imodamp1, icarfreq1 + amod1
+  kcarposc1 downsamp acarposc1
+  aosc1 vco2 iamp, kcarposc1 + kmod1, 10
+  ;   sig2
+  amod2 vco2 imodamp2, imodfreq2, 2, .65
+  kmod2 downsamp amod2
+  acarposc2 oscil imodamp2, icarfreq2 + amod2
+  kcarposc2 downsamp acarposc2
+  aosc2 vco2 iamp, kcarposc2 + kmod2, 10
+  ;   sig3
+  amod3 vco2 imodamp3, imodfreq3, 2, .65
+  kmod3 downsamp amod3
+  acarposc3 oscil imodamp3, icarfreq3 + amod3
+  kcarposc3 downsamp acarposc3
+  aosc3 vco2 iamp, kcarposc3 + kmod3, 10
+  ;   combination
+  aosc = (aosc1 + aosc2 + aosc3) / 3
 
   ; initial cymbal 'ping' filter
   apingdec expseg 20000-ipingbase, ipingdur, 0.0001
@@ -259,12 +282,37 @@ endin
 </CsInstruments>
 ; ==============================================
 <CsScore>
-t 0 120
+t 0 100
 i "RoBod"     0.0000     .5  36  100
+i "RoBod"     0.5000     .5  36  100
+i "RoBod"     0.7500     .5  36  100
 i "RoBod"     1.0000     .5  36  100
-i "RoBod"     1.7500     .5  36  100
-i "RoBod"     2.2500     .5  36  100
-i "RoBod"     2.5000     .5  36  100
+;i "RoBod"     1.5000     .5  36  100
+;i "RoBod"     1.7500     .5  36  100
+;i "RoBod"     1.8750     .5  36  100
+;i "RoBod"     2.0000     .5  36  100
+;i "RoBod"     2.0625     .5  36  100
+;i "RoBod"     2.1250     .5  36  100
+;i "RoBod"     2.1875     .5  36  100
+;i "RoBod"     2.2500     .5  36  100
+;i "RoBod"     2.3125     .5  36  100
+;i "RoBod"     2.3750     .5  36  100
+;i "RoBod"     2.4375     .5  36  100
+;i "RoBod"     2.5000     .5  36  100
+;i "RoBod"     2.5625     .5  36  100
+;i "RoBod"     2.6250     .5  36  100
+;i "RoBod"     2.6875     .5  36  100
+;i "RoBod"     2.7500     .5  36  100
+;i "RoBod"     2.8125     .5  36  100
+;i "RoBod"     2.8750     .5  36  100
+;i "RoBod"     2.9375     .5  36  100
+;i "RoBod"     3.1875     .5  36  100
+;i "RoBod"     3.2500     .5  36  100
+;i "RoBod"     3.3125     .5  36  100
+;i "RoBod"     3.5000     .5  36  100
+;i "RoBod"     4.1875     .5  36  100
+;i "RoBod"     4.3125     .5  36  100
+;
 ;i            s          d       n   v
 ;i "RoBod"     0.0000     0.7479  41  62
 ;i "RoBod"     0.7500     0.1229  38  79
