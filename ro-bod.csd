@@ -1,7 +1,7 @@
 <CsoundSynthesizer>
 <CsOptions>
 -odac
-;-o ro-bod_hi_hat_demo.wav --format=wav
+;-o ro-bod_hi_hat_demo_2.wav --format=wav
 ;-o /dev/null
 </CsOptions>
 ; ==============================================
@@ -41,8 +41,8 @@ instr RoBod
   iwoodbcolor = 700
   iwoodbpan   = .61
 
-  ; ride params
-  ihihatpedal = .9 ; .9 to 23; closed to open
+  ; hi-hat params
+  ihihatpedal = .18 ; .18 to 4.6; closed to open
   ihihatcolor = 3; .8 to 3, dark to bright
   ihihatpan = .5
 
@@ -226,6 +226,7 @@ instr RoBod_HiHat
   iamp = p4
   ispread = p5 ; from .8 to 3—dark to bright
   ipan = p6
+  ienvdur = idur*5
   imodindex = (((ispread - .8) * (3 - 5)) / (3 - .8)) + 5 ; varies from 5 at minimum to 3 at maximum with ispread
   imodfreq1 = 1047*ispread
   icarfreq1 = 1481*ispread
@@ -236,7 +237,7 @@ instr RoBod_HiHat
   imodfreq3 = 1175*ispread
   icarfreq3 = 1480*ispread
   imodamp3  = imodfreq3 * imodindex
-  ipingdur = idur * .05
+  ipingdur = ienvdur * .05
   ipingbase = 1000
   irhpbase = 2628
 
@@ -267,14 +268,14 @@ instr RoBod_HiHat
   aping butterbp aosc, ipingbase, apingdec 
 
   ; rest of cymbal filter
-  arestenv expseg irhpbase, ipingdur, 20000, idur - (ipingdur), irhpbase
+  arestenv expseg irhpbase, ipingdur, 20000, ienvdur - (ipingdur), irhpbase
   arest butterhp aosc, arestenv
 
   asig = (aping * .33) + (arest * .66)
   apostsig clip asig, 1, iamp
 
   ; overall env
-  aoverenv expseg iamp, idur * .2, .0001
+  aoverenv expseg iamp, idur, .0001
 
   outs (apostsig*ipan)*aoverenv, (apostsig*(1-ipan))*aoverenv
 endin
@@ -282,11 +283,28 @@ endin
 </CsInstruments>
 ; ==============================================
 <CsScore>
-t 0 100
-i "RoBod"     0.0000     .5  36  100
-i "RoBod"     0.5000     .5  36  100
-i "RoBod"     0.7500     .5  36  100
-i "RoBod"     1.0000     .5  36  100
+t 0 150
+i "RoBod_HiHat" 0  .18 .9 .8 .5 
+i "RoBod_HiHat" 1  .18 .9 .8 .5 
+i "RoBod_HiHat" 2  .18 .9 .8 .5 
+i "RoBod_HiHat" 3  .18 .9 .8 .5 
+i "RoBod_HiHat" 8  4.6 .9 .8 .5 
+i "RoBod_HiHat" 9  4.6 .9 .8 .5 
+i "RoBod_HiHat" 10 4.6 .9 .8 .5 
+i "RoBod_HiHat" 11 4.6 .9 .8 .5 
+i "RoBod_HiHat" 16 .18 .9 3  .5 
+i "RoBod_HiHat" 17 .18 .9 3  .5 
+i "RoBod_HiHat" 18 .18 .9 3  .5 
+i "RoBod_HiHat" 19 .18 .9 3  .5 
+i "RoBod_HiHat" 24 4.6 .9 3  .5 
+i "RoBod_HiHat" 25 4.6 .9 3  .5 
+i "RoBod_HiHat" 26 4.6 .9 3  .5 
+i "RoBod_HiHat" 27 4.6 .9 3  .5 
+
+;i "RoBod"     0.0000     .5  36  100
+;i "RoBod"     0.5000     .5  36  100
+;i "RoBod"     0.7500     .5  36  100
+;i "RoBod"     1.0000     .5  36  100
 ;i "RoBod"     1.5000     .5  36  100
 ;i "RoBod"     1.7500     .5  36  100
 ;i "RoBod"     1.8750     .5  36  100
