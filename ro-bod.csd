@@ -1,7 +1,7 @@
 <CsoundSynthesizer>
 <CsOptions>
 -odac
-;-o ro-bod_hi_hat_demo_2.wav --format=wav
+;-o ro-bod_ride_demo_2.wav --format=wav
 ;-o /dev/null
 </CsOptions>
 ; ==============================================
@@ -16,7 +16,8 @@ instr RoBod
   #define KICK_MIDI_N      #41# ; assign midi note numbers to drums here
   #define SNARE_MIDI_N     #38#
   #define WOODBLOCK_MIDI_N #37#
-  #define RIDE_MIDI_N #36#
+  #define HIHAT_MIDI_N #36#
+  #define RIDE_MIDI_N #35#
 
   #define MIDI_MAX_VEL #127#
   
@@ -46,6 +47,11 @@ instr RoBod
   ihihatcolor = 3; .8 to 3, dark to bright
   ihihatpan = .5
 
+  ; ride params
+  iridedur = 6 ; 6 to 7.3
+  iridecolor = 1.8 ; 1.8 to 2.6, dark to bright
+  iridepan = .5
+
   ivel    = p5
   iamp    = ivel / $MIDI_MAX_VEL ; convert midi velocity to 0-1 scale
 
@@ -57,8 +63,10 @@ instr RoBod
     event_i "i", "RoBod_Snare", 0, isnaredur, iamp, isnarebasefreq, isnarecolor, isnaresnares, isnaresnarecutoff, isnarepan
   elseif (imidi_n == $WOODBLOCK_MIDI_N) then
     event_i "i", "RoBod_Woodblock", 0, iamp, iwoodbcolor, iwoodbpan
-  elseif (imidi_n == $RIDE_MIDI_N) then
+  elseif (imidi_n == $HIHAT_MIDI_N) then
     event_i "i", "RoBod_HiHat", 0, ihihatpedal, iamp, ihihatcolor, ihihatpan
+  elseif (imidi_n == $RIDE_MIDI_N) then
+    event_i "i", "RoBod_Ride", 0, iridedur, iamp, iridecolor, iridepan
   else
     prints "WARNING: midi note number %d does not correspond to a drum instrument\n", imidi_n
   endif
@@ -280,26 +288,94 @@ instr RoBod_HiHat
   outs (apostsig*ipan)*aoverenv, (apostsig*(1-ipan))*aoverenv
 endin
 
+instr RoBod_Ride
+  idur = p3
+  iamp = p4
+  ispread = p5 ; from .8 to 3—dark to bright
+  ipan = p6
+  ienvdur = idur*5
+  imodindex = 6
+  imodfreq1 = 505*ispread
+  icarfreq1 = 834*ispread
+  imodamp1  = imodfreq1 * imodindex
+  imodfreq2 = 452*ispread
+  icarfreq2 = 649*ispread
+  imodamp2  = imodfreq2 * imodindex
+  imodfreq3 = 568*ispread
+  icarfreq3 = 894*ispread
+  imodamp3  = imodfreq3 * imodindex
+  ipingdur = ienvdur * .05
+  ipingbase = 2000
+  irhpbase = 4000
+
+  ; fm signals
+  ;   sig1
+  amod1 vco2 imodamp1, imodfreq1, 2, .65
+  kmod1 downsamp amod1
+  acarposc1 oscil imodamp1, icarfreq1 + amod1
+  kcarposc1 downsamp acarposc1
+  aosc1 vco2 iamp, kcarposc1 + kmod1, 10
+  ;   sig2
+  amod2 vco2 imodamp2, imodfreq2, 2, .65
+  kmod2 downsamp amod2
+  acarposc2 oscil imodamp2, icarfreq2 + amod2
+  kcarposc2 downsamp acarposc2
+  aosc2 vco2 iamp, kcarposc2 + kmod2, 10
+  ;   sig3
+  amod3 vco2 imodamp3, imodfreq3, 2, .65
+  kmod3 downsamp amod3
+  acarposc3 oscil imodamp3, icarfreq3 + amod3
+  kcarposc3 downsamp acarposc3
+  aosc3 vco2 iamp, kcarposc3 + kmod3, 10
+  ;   combination
+  aosc = (aosc1 + aosc2 + aosc3) / 3
+
+  ; initial cymbal 'ping' filter
+  apingdec expseg 20000-ipingbase, ipingdur, 0.0001
+  aping butterbp aosc, ipingbase, apingdec 
+
+  ; rest of cymbal filter
+  arestenv expseg irhpbase, ipingdur, 20000, ienvdur - (ipingdur), irhpbase
+  arest butterhp aosc, arestenv
+
+  asig = (aping * .33) + (arest * .66)
+  apostsig clip asig, 1, iamp
+
+  ; overall env
+  aoverenv expseg iamp, idur, .0001
+
+  outs (apostsig*ipan)*aoverenv, (apostsig*(1-ipan))*aoverenv
+endin
+
+
 </CsInstruments>
 ; ==============================================
 <CsScore>
-t 0 150
-i "RoBod_HiHat" 0  .18 .9 .8 .5 
-i "RoBod_HiHat" 1  .18 .9 .8 .5 
-i "RoBod_HiHat" 2  .18 .9 .8 .5 
-i "RoBod_HiHat" 3  .18 .9 .8 .5 
-i "RoBod_HiHat" 8  4.6 .9 .8 .5 
-i "RoBod_HiHat" 9  4.6 .9 .8 .5 
-i "RoBod_HiHat" 10 4.6 .9 .8 .5 
-i "RoBod_HiHat" 11 4.6 .9 .8 .5 
-i "RoBod_HiHat" 16 .18 .9 3  .5 
-i "RoBod_HiHat" 17 .18 .9 3  .5 
-i "RoBod_HiHat" 18 .18 .9 3  .5 
-i "RoBod_HiHat" 19 .18 .9 3  .5 
-i "RoBod_HiHat" 24 4.6 .9 3  .5 
-i "RoBod_HiHat" 25 4.6 .9 3  .5 
-i "RoBod_HiHat" 26 4.6 .9 3  .5 
-i "RoBod_HiHat" 27 4.6 .9 3  .5 
+t 0 130
+i "RoBod" 0     1 35 80
+i "RoBod" 1     1 35 80
+i "RoBod" 2     1 35 80
+i "RoBod" 3     1 35 80
+;i "RoBod_Ride" 0     13 .3 1.8 .5 ; 1.35 to 2.8
+;i "RoBod_Ride" 1     13 .3 1.8 .5 
+;i "RoBod_Ride" 2     13 .3 1.8 .5 
+;i "RoBod_Ride" 3     13 .3 1.8 .5 
+;i "RoBod_Ride" 8     13 .3 2.6 .5 ; 1.35 to 2.8
+;i "RoBod_Ride" 9     13 .3 2.6 .5 
+;i "RoBod_Ride" 10    13 .3 2.6 .5 
+;i "RoBod_Ride" 11    13 .3 2.6 .5 
+;i "RoBod_Ride" 8  4.6 .9 .8 .5 
+;i "RoBod_Ride" 9  4.6 .9 .8 .5 
+;i "RoBod_Ride" 10 4.6 .9 .8 .5 
+;i "RoBod_Ride" 11 4.6 .9 .8 .5 
+;i "RoBod_Ride" 16 .18 .9 3  .5 
+;i "RoBod_Ride" 17 .18 .9 3  .5 
+;i "RoBod_Ride" 18 .18 .9 3  .5 
+;i "RoBod_Ride" 19 .18 .9 3  .5 
+;i "RoBod_Ride" 24 4.6 .9 3  .5 
+;i "RoBod_Ride" 25 4.6 .9 3  .5 
+;i "RoBod_Ride" 26 4.6 .9 3  .5 
+;i "RoBod_Ride" 27 4.6 .9 3  .5 
 
 ;i "RoBod"     0.0000     .5  36  100
 ;i "RoBod"     0.5000     .5  36  100

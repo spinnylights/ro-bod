@@ -25,6 +25,11 @@ Ro-bod is a synth-based drum machine that provides a wide range of textures whil
   * __ihihatcolor:__ .8 is darkest; 3 is brightest.
   * __ihihatpan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.
 
+### Ride
+  * __iridedur:__ The duration of the ride sound. 6 to 7.3 gives conventional results. It may be helpful to increase the duration with higher values of `iridecolor` and decrease it with lower values.
+  * __iridecolor:__ Dark to bright. 1.8 to 2.6 gives conventional results.
+  * __iridepan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.
+
 ### Woodblock
   * __iwoodbcolor:__ A number from 1–1000. Controls the "material" of the simulated beater. Low values give a sound like felt; middle values give a sound like wood; high values give a sound like metal.
   * __iwoodbpan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.
