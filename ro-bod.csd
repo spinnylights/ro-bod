@@ -1,7 +1,7 @@
 <CsoundSynthesizer>
 <CsOptions>
 ;-odac
--o ro-bod_hihat_demo_new_tail.wav --format=wav
+-o ro-bod_crash_demo.wav --format=wav
 ;-o /dev/null
 </CsOptions>
 ; ==============================================
@@ -18,6 +18,7 @@ instr RoBod
   #define WOODBLOCK_MIDI_N #37#
   #define HIHAT_MIDI_N #36#
   #define RIDE_MIDI_N #35#
+  #define CRASH_MIDI_N #34#
 
   #define MIDI_MAX_VEL #127#
   
@@ -49,8 +50,14 @@ instr RoBod
 
   ; ride params
   iridedur = 6 ; 6 to 7.3
-  iridecolor = 1.8 ; 1.8 to 2.6, dark to bright
+  iridecolor = 2.4; 1.8 to 2.6, dark to bright
   iridepan = .5
+
+  ; crash params
+  icrashdur = 6.2; 5 to 6.5
+  icrashcolor1 = .7; .7 to .77, dark to bright
+  icrashcolor2 = 1.8; 1.8 to 3, dark to bright
+  icrashpan = .5
 
   ivel    = p5
   iamp    = ivel / $MIDI_MAX_VEL ; convert midi velocity to 0-1 scale
@@ -67,6 +74,8 @@ instr RoBod
     event_i "i", "RoBod_HiHat", 0, ihihatpedal, iamp, ihihatcolor, ihihatpan
   elseif (imidi_n == $RIDE_MIDI_N) then
     event_i "i", "RoBod_Ride", 0, iridedur, iamp, iridecolor, iridepan
+  elseif (imidi_n == $CRASH_MIDI_N) then
+    event_i "i", "RoBod_Crash", 0, icrashdur, iamp, icrashcolor1, icrashcolor2, icrashpan
   else
     prints "WARNING: midi note number %d does not correspond to a drum instrument\n", imidi_n
   endif
@@ -347,15 +356,86 @@ instr RoBod_Ride
   outs (apostsig*ipan)*aoverenv, (apostsig*(1-ipan))*aoverenv
 endin
 
+instr RoBod_Crash
+  idur = p3
+  iamp = p4
+  ispread = p5 ; from .8 to 3—dark to bright
+  imodindex = p6
+  ipan = p7
+  ienvdur = idur*8
+;  imodindex = (((ispread - .8) * (3 - 5)) / (3 - .8)) + 5 ; varies from 5 at minimum to 3 at maximum with ispread
+  imodfreq1 = 1347*ispread
+  icarfreq1 = 1681*ispread
+  imodamp1  = imodfreq1 * imodindex
+  imodfreq2 = 1309*ispread
+  icarfreq2 = 1349*ispread
+  imodamp2  = imodfreq2 * imodindex
+  imodfreq3 = 1375*ispread
+  icarfreq3 = 1780*ispread
+  imodamp3  = imodfreq3 * imodindex
+  imodfreq4 = 828*ispread
+  icarfreq4 = 980*ispread
+  imodamp4  = imodfreq4 * imodindex
+  ipingdur = ienvdur * .09
+  ipingbase = 4500*ispread
+  irhpbase = 1828*ispread
+
+  ; fm signals
+  ;   sig1
+  amod1 vco2 imodamp1, imodfreq1, 2, .65
+  kmod1 downsamp amod1
+  acarposc1 oscil imodamp1, icarfreq1 + amod1
+  kcarposc1 downsamp acarposc1
+  aosc1 vco2 iamp, kcarposc1 + kmod1, 10
+  ;   sig2
+  amod2 vco2 imodamp2, imodfreq2, 2, .65
+  kmod2 downsamp amod2
+  acarposc2 oscil imodamp2, icarfreq2 + amod2
+  kcarposc2 downsamp acarposc2
+  aosc2 vco2 iamp, kcarposc2 + kmod2, 10
+  ;   sig3
+  amod3 vco2 imodamp3, imodfreq3, 2, .65
+  kmod3 downsamp amod3
+  acarposc3 oscil imodamp3, icarfreq3 + amod3
+  kcarposc3 downsamp acarposc3
+  aosc3 vco2 iamp, kcarposc3 + kmod3, 10
+  ;   sig4
+  amod4 vco2 imodamp4, imodfreq4, 2, .65
+  kmod4 downsamp amod4
+  acarposc4 oscil imodamp4, icarfreq4 + amod4
+  kcarposc4 downsamp acarposc4
+  aosc4 vco2 iamp, kcarposc4 + kmod4, 10
+  ;   combination
+  aosc = (aosc1 + aosc2 + aosc3 + aosc4) / 4
+
+  ; initial cymbal 'ping' filter
+  apingdec expseg 20000-ipingbase+2000, ipingdur, 0.0001
+  aping butterbp aosc, ipingbase, apingdec 
+
+  ; rest of cymbal filter
+  arestenv expseg irhpbase, ipingdur, 20000, .1, 10000, ienvdur - (ipingdur), irhpbase
+  arest butterhp aosc, arestenv
+
+  asig = (aping * .25) + (arest * .55) + (aosc * .3)
+  apostsig clip asig, 1, iamp
+
+  ; overall env
+  aoverenv expseg iamp, idur, .0001
+
+  outs (apostsig*ipan)*aoverenv, (apostsig*(1-ipan))*aoverenv
+endin
 
 </CsInstruments>
 ; ==============================================
 <CsScore>
 t 0 130
-i "RoBod" 0     1 36 80
-i "RoBod" 1     1 36 80
-i "RoBod" 2     1 36 80
-i "RoBod" 3     1 36 80
+i "RoBod_Crash" 0     12.5 .8 .7  1.8 .5
+i "RoBod_Crash" 8     12.5 .8 .77 1.8 .5
+i "RoBod_Crash" 16    12.5 .8 .7  3   .5
+i "RoBod_Crash" 24    12.5 .8 .77 3   .5
+;i "RoBod" 0     1 34 50
+;i "RoBod" 2     1 34 50
+;i "RoBod" 3     1 34 50
 e
 </CsScore>
 </CsoundSynthesizer>
