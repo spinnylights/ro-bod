@@ -21,7 +21,7 @@ Ro-bod is a synth-based drum machine that provides a wide range of textures whil
   * __isnarepan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.
 
 ### Hi-hat
-  * __ihihatpedal:__ The foot pedal control. .18 is fully closed; 4.6 is fully open.
+  * __ihihatpedal:__ The foot pedal control. .18 is fully closed; 7.8 is fully open.
   * __ihihatcolor:__ .8 is darkest; 3 is brightest.
   * __ihihatpan:__ Panning. 1 is hard left; 0 is hard right; .5 is center.
 
